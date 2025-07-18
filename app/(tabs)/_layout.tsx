@@ -63,7 +63,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="features"
         options={{
-          title: 'Features',
+          title: 'Nav',
           tabBarIcon: ({ color, size }) => (
             <Zap color={color} size={size} />
           ),
@@ -72,7 +72,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="test"
         options={{
-          title: 'Test',
+          title: 'Services',
           tabBarIcon: ({ color, size }) => (
             <TestTube color={color} size={size} />
           ),
