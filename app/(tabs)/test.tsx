@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Image, ScrollView, DeviceEventEmitter, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, ArrowRight, ArrowDown, CheckCircle, Navigation, Sparkles, ImageIcon, Locate } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { CameraView } from 'expo-camera';
-import { Eye } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -16,7 +12,7 @@ const halls = [
   { label: 'Hall C', value: 'hall_c' },
 ];
 
-const exhibitsByHall = {
+const exhibitsByHall: { [key: string]: { label: string; value: string }[] } = {
   hall_a: [
     { label: 'The Giant Zoetrope', value: 'zoetrope' },
     { label: 'Professor Crackitt\'s Light Fantastic Mirror Maze', value: 'mirror' },
@@ -26,36 +22,12 @@ const exhibitsByHall = {
   hall_b: [
     { label: 'Earth Alive', value: 'earth_alive' },
     { label: 'The Science of Fear', value: 'science_fear' },
-    { label: 'Energy Store', value: 'energy_store' },
+    { label: 'Energy Story', value: 'energy_story' },
   ],
   hall_c: [
     { label: 'Going Viral', value: 'going_viral' },
     { label: 'E-mmersive Experiential Environment', value: 'emmersive' },
   ],
-};
-
-const exhibitDescriptions: { [key: string]: string } = {
-  zoetrope: 'Experience the magic of early animation with our interactive giant zoetrope featuring mesmerizing moving images.',
-  mirror: 'Navigate through a dazzling maze of lights and mirrors in this mind-bending optical illusion experience.',
-  laser: 'Test your agility and stealth skills in this exciting laser obstacle course challenge.',
-  scientist: 'Become a real scientist for a day with hands-on experiments and interactive learning stations.',
-  earth_alive: 'Discover the wonders of our living planet through immersive displays and interactive exhibits.',
-  science_fear: 'Explore the fascinating science behind fear, phobias, and the human nervous system.',
-  energy_store: 'Learn about renewable energy, power generation, and sustainable technologies for the future.',
-  going_viral: 'Understand how viruses spread and the science behind pandemics in this timely exhibit.',
-  emmersive: 'Step into a fully immersive digital environment with cutting-edge VR and AR technology.',
-};
-
-const exhibitImages: { [key: string]: string } = {
-  zoetrope: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/zoetrope/banners/zoetrope-banner.jpg',
-  mirror: 'https://img.jakpost.net/c/2018/04/06/2018_04_06_43556_1523009900._medium.jpg',
-  laser: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/laser-maze-challenge/teasers/lasermaze-teaser.jpg',
-  scientist: 'https://heartlandertourist.wordpress.com/wp-content/uploads/2017/04/20160809_130510.jpg',
-  earth_alive: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/earth-alive/highlights/gaia.jpg',
-  science_fear: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/phobia/teasers/phobia-teaser.jpg',
-  energy_store: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/energy/energy-carousel-images/energy-exhibition---future-power.jpg',
-  going_viral: 'https://www.science.edu.sg/images/default-source/scs-images/whats-on/exhibitions/going-viral-travelling-exhibition/dsc_5729.jpg',
-  emmersive: 'https://www.littledayout.com/wp-content/uploads/Science-Centre-Singapore-31.jpg',
 };
 
 const practicalLocations = [
@@ -65,7 +37,62 @@ const practicalLocations = [
   { label: 'First Aid Room', value: 'first_aid' },
 ];
 
-const navigationData: { [key: string]: { distance: string; directions: string[]; isCrossHall: boolean } } = {
+// Image mapping function
+const getRouteImagePath = (hall: string, currentLocation: string, destination: string): string | null => {
+  if (!hall || !currentLocation || !destination) return null;
+  
+  const hallFormatted = hall.replace('_', '-');
+  
+  const locationFormatted = currentLocation.replace('_', '-');
+  
+  const destinationFormatted = destination.replace('_', '-');
+  
+  const filename = `${hallFormatted}-${locationFormatted}-to-${destinationFormatted}.png`;
+  
+  return filename;
+};
+
+const imageMap: { [key: string]: string } = {
+  // Hall A images
+  'hall-a-zoetrope-to-restroom.png': 'https://i.imgur.com/M62VRuu.png',
+  'hall-a-zoetrope-to-elevator.png': 'https://i.imgur.com/CdiNqCm.png',
+  'hall-a-zoetrope-to-food.png': 'https://i.imgur.com/MVUN5mQ.png',
+  'hall-a-mirror-to-restroom.png': 'https://i.imgur.com/8kW2SMx.png',
+  'hall-a-mirror-to-elevator.png': 'https://i.imgur.com/m1ogE2f.png',
+  'hall-a-mirror-to-food.png': 'https://i.imgur.com/BlJEgY3.png',
+  'hall-a-laser-to-restroom.png': 'https://i.imgur.com/FwMShkU.png',
+  'hall-a-laser-to-elevator.png': 'https://i.imgur.com/EYDZ2HN.png',
+  'hall-a-laser-to-food.png': 'https://i.imgur.com/LQ4umik.png',
+  'hall-a-scientist-to-restroom.png': 'https://i.imgur.com/PNvgeId.png',
+  'hall-a-scientist-to-elevator.png': 'https://i.imgur.com/RGet2V3.png',
+  'hall-a-scientist-to-food.png': 'https://i.imgur.com/B40NqQE.png',
+  
+  // Hall B images
+  'hall-b-earth-alive-to-elevator.png': 'https://i.imgur.com/WSnATeY.png',
+  'hall-b-earth-alive-to-restroom.png': 'https://i.imgur.com/Z70BnlJ.png',
+  'hall-b-earth-alive-to-first-aid.png': 'https://i.imgur.com/XoiNVLL.png',
+  'hall-b-science-fear-to-elevator.png': 'https://i.imgur.com/8rOPg8O.png',
+  'hall-b-science-fear-to-restroom.png': 'https://i.imgur.com/JzWf0Pq.png',
+  'hall-b-science-fear-to-first-aid.png': 'https://i.imgur.com/4pRrcEm.png',
+  'hall-b-energy-story-to-elevator.png': 'https://i.imgur.com/tsFzbfB.png',
+  'hall-b-energy-story-to-restroom.png': 'https://i.imgur.com/AfmBCZU.png',
+  'hall-b-energy-story-to-first-aid.png': 'https://i.imgur.com/AfmBCZU.png',
+  
+  // Hall C images
+  'hall-c-going-viral-to-restroom.png': 'https://i.imgur.com/irHM0tI.png',
+  'hall-c-going-viral-to-elevator.png': 'https://i.imgur.com/pmOsyg7.png',
+  'hall-c-emmersive-to-restroom.png': 'https://i.imgur.com/fUH5ll1.png',
+  'hall-c-emmersive-to-elevator.png': 'https://i.imgur.com/2eAgFq8.png',
+  
+};
+
+type NavigationRoute = {
+  distance: string;
+  directions: string[];
+  isCrossHall: boolean;
+};
+
+const navigationData: { [key: string]: NavigationRoute } = {
   // HALL A
   'zoetrope-restroom': {
     distance: '5 meters',
@@ -189,22 +216,22 @@ const navigationData: { [key: string]: { distance: string; directions: string[];
     directions: ['Go to Hall A for nearest Food Stall'],
     isCrossHall: true
   },
-  'energy_store-elevator': {
+  'energy_story-elevator': {
     distance: '5 meters',
     directions: ['Walk 5 meters to the right', 'The nearest elevator will be on your right'],
     isCrossHall: false
   },
-  'energy_store-restroom': {
+  'energy_story-restroom': {
     distance: '5 meters',
     directions: ['Walk 5 meters to the left', 'You will find the nearest restroom on your left'],
     isCrossHall: false
   },
-  'energy_store-first_aid': {
+  'energy_story-first_aid': {
     distance: '7 meters',
     directions: ['Walk 7 meters to the left', 'The First Aid Room will be on your left'],
     isCrossHall: false
   },
-  'energy_store-food': {
+  'energy_story-food': {
     distance: 'Go to Hall A',
     directions: ['Go to Hall A for nearest Food Stall'],
     isCrossHall: true
@@ -261,11 +288,12 @@ export default function NavigationSystem() {
   const [currentStep, setCurrentStep] = useState(0);
   const [totalDistance, setTotalDistance] = useState('');
   const [isCrossHallNavigation, setIsCrossHallNavigation] = useState(false);
-  const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
-  const [detectedLocation, setDetectedLocation] = useState<{ hall: string; exhibit: string } | null>(null);
+  const [imageError, setImageError] = useState({});
+  const [detectedLocation, setDetectedLocation] = useState(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [showCamera, setShowCamera] = useState(true);
   const [locationDetected, setLocationDetected] = useState(false);
+  const [currentRouteImage, setCurrentRouteImage] = useState<string | null>(null);
   const cameraRef = React.useRef(null);
 
   const [openHall, setOpenHall] = useState(false);
@@ -280,7 +308,7 @@ export default function NavigationSystem() {
   const [imageAnim] = useState(new Animated.Value(0));
   const [detectAnim] = useState(new Animated.Value(1));
 
-  const currentExhibits = selectedHall ? exhibitsByHall[selectedHall as keyof typeof exhibitsByHall] : [];
+  const currentExhibits = selectedHall ? exhibitsByHall[selectedHall] : [];
 
   // On mount, check for a stored location from features.tsx and set hall/exhibit accordingly
   useEffect(() => {
@@ -346,8 +374,26 @@ export default function NavigationSystem() {
         duration: 800,
         useNativeDriver: true,
       }).start();
+
+      // Animate route image
+      Animated.timing(imageAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
     }
   }, [routeSteps]);
+
+  // Update route image when selections change
+  useEffect(() => {
+    if (selectedHall && currentLocation && destination) {
+      const imagePath = getRouteImagePath(selectedHall, currentLocation, destination);
+      const imageSource = imagePath ? imageMap[imagePath] : null;
+      setCurrentRouteImage(imageSource || null);
+    } else {
+      setCurrentRouteImage(null);
+    }
+  }, [selectedHall, currentLocation, destination]);
 
   // Fix handleHallChange and handleCurrentLocationChange parameter types
   const handleHallChange = React.useCallback((hall: string | null) => {
@@ -359,6 +405,7 @@ export default function NavigationSystem() {
     setIsCrossHallNavigation(false);
     setImageError({});
     setDetectedLocation(null);
+    setCurrentRouteImage(null);
     
     // Reset animations
     fadeAnim.setValue(0);
@@ -378,7 +425,8 @@ export default function NavigationSystem() {
     // Reset navigation animations
     fadeAnim.setValue(0);
     slideAnim.setValue(0);
-  }, [fadeAnim, slideAnim]);
+    imageAnim.setValue(0);
+  }, [fadeAnim, slideAnim, imageAnim]);
 
   // New location detection logic
   const handleDetectLocation = () => {
@@ -403,7 +451,7 @@ export default function NavigationSystem() {
       setIsCrossHallNavigation(route.isCrossHall);
       setCurrentStep(0);
     } else {
-      const noRouteMessage = ['No route available between selected locations.'];
+      setRouteSteps(['No route available between selected locations.'] as any);
       setTotalDistance('');
       setIsCrossHallNavigation(false);
       setCurrentStep(0);
@@ -441,6 +489,7 @@ export default function NavigationSystem() {
     setIsCrossHallNavigation(false);
     setImageError({});
     setDetectedLocation(null);
+    setCurrentRouteImage(null);
     
     // Reset animations
     fadeAnim.setValue(0);
@@ -469,17 +518,20 @@ export default function NavigationSystem() {
 
   // Add proper null checking and improve function structure
   const getCurrentExhibitLabel = React.useCallback(() => {
-    if (!currentLocation || !currentExhibits.length) return '';
+    if (!currentLocation || !currentExhibits || currentExhibits.length === 0) return '';
     
-    const exhibit = currentExhibits.find((ex) => ex.value === currentLocation);
-    return exhibit?.label || '';
+    const exhibit = currentExhibits.find((ex: any) => ex.value === currentLocation);
+    if (exhibit && exhibit.label) {
+      return (exhibit as any).label;
+    }
+    return '';
   }, [currentLocation, currentExhibits]);
 
   return (
   <View style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
     <LinearGradient colors={['#FF6B35', '#FF8C42']} style={styles.header}>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>Hall A Navigation</Text>
+        <Text style={styles.headerTitle}>Hall Navigation</Text>
         <Text style={styles.headerSubtitle}>Interactive Exhibit Guide</Text>
       </View>
     </LinearGradient>
@@ -496,7 +548,8 @@ export default function NavigationSystem() {
               setOpen={setOpenHall}
               items={halls}
               value={selectedHall}
-              setValue={val => handleHallChange(val as unknown as string | null)}
+              setValue={setSelectedHall}
+              onChangeValue={handleHallChange}
               placeholder="Choose a hall"
               style={styles.dropdown}
               containerStyle={{ marginBottom: 20 }}
@@ -508,7 +561,8 @@ export default function NavigationSystem() {
               setOpen={setOpenCurrent}
               items={currentExhibits}
               value={currentLocation}
-              setValue={val => handleCurrentLocationChange(val as unknown as string | null)}
+              setValue={setCurrentLocation}
+              onChangeValue={handleCurrentLocationChange}
               placeholder={selectedHall ? "Select your current exhibit" : "Please select a hall first"}
               style={[styles.dropdown, !selectedHall && styles.disabledDropdown]}
               disabled={!selectedHall}
@@ -529,10 +583,37 @@ export default function NavigationSystem() {
               zIndexInverse={2000}
             />
           </View>
+
+          {/* Route Image Preview */}
+          {currentRouteImage && (
+            <Animated.View 
+              style={[
+                styles.routeImageContainer,
+                {
+                  opacity: imageAnim,
+                  transform: [{
+                    translateY: imageAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.routeImageTitle}>Route Preview</Text>
+              <Image 
+                source={currentRouteImage ? { uri: currentRouteImage } : undefined}
+                style={styles.routeImage}
+                resizeMode="contain"
+                onError={() => console.log('Failed to load route image')}
+              />
+            </Animated.View>
+          )}
+
           <TouchableOpacity
             style={[
               styles.startButton,
-              { marginTop: 115 },
+              { marginTop: currentRouteImage ? 20 : 115 },
               (!selectedHall || !currentLocation || !destination) && styles.disabledButton
             ]}
             onPress={handleStartNavigation}
@@ -541,7 +622,15 @@ export default function NavigationSystem() {
             <Text style={styles.startButtonText}>Get Directions</Text>
           </TouchableOpacity>
           {routeSteps.length > 0 && (
-            <View style={styles.navigationInfo}>
+            <Animated.View 
+              style={[
+                styles.navigationInfo,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideTransform }]
+                }
+              ]}
+            >
               <Text style={styles.navigationTitle}>Directions</Text>
               {totalDistance && (
                 <View style={styles.navigationItem}>
@@ -567,7 +656,7 @@ export default function NavigationSystem() {
               <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
                 <Text style={styles.resetButtonText}>New Navigation</Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
         </>
       )}
@@ -625,6 +714,30 @@ const styles = StyleSheet.create({
   },
   disabledDropdown: {
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  routeImageContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    alignItems: 'center',
+  },
+  routeImageTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  routeImage: {
+    width: width - 72,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
   },
   startButton: {
     borderRadius: 12,
